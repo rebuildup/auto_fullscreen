@@ -7,6 +7,7 @@ chrome.runtime.onInstalled.addListener(function () {
     autoFullscreenEnabled: true,
     topSensitivityArea: 20,
     returnDelay: 1000,
+    autoReturnEnabled: true,
   });
 });
 
@@ -26,6 +27,13 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 
 // メッセージハンドラを追加
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // 将来の拡張のためのプレースホルダー
+  if (message.action === "requestFullscreen") {
+    // ポップアップUIからの全画面リクエストを処理
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      if (tabs.length > 0) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "enterFullscreen" });
+      }
+    });
+  }
   return false; // 同期レスポンス
 });

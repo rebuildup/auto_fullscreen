@@ -2,21 +2,27 @@
 let isFullscreen = false;
 let isMouseNearTop = false;
 let autoFullscreenEnabled = true;
-let topSensitivityArea = 20; // Pixels from top to trigger exit fullscreen
-let returnDelay = 1000; // Delay (ms) before re-entering fullscreen
+let autoReturnEnabled = true;
+let topSensitivityArea = 20;
+let returnDelay = 1000;
 let isInitialized = false;
-let returnTimeoutId = null; // Timer ID for returning fullscreen
-let fullscreenRetryTimeout = null; // Timer to throttle fullscreen attempts
+let returnTimeoutId = null;
+let lastUserGesture = 0;
+let debugMode = false; // デバッグログを無効化
 
 // Initialization function
 function initialize() {
   if (isInitialized) return;
   isInitialized = true;
-  console.log("Initializing content script");
 
   // Load settings from storage
   chrome.storage.sync.get(
-    ["autoFullscreenEnabled", "topSensitivityArea", "returnDelay"],
+    [
+      "autoFullscreenEnabled",
+      "topSensitivityArea",
+      "returnDelay",
+      "autoReturnEnabled",
+    ],
     function (result) {
       if (result.autoFullscreenEnabled !== undefined) {
         autoFullscreenEnabled = result.autoFullscreenEnabled;
@@ -27,9 +33,8 @@ function initialize() {
       if (result.returnDelay !== undefined) {
         returnDelay = result.returnDelay;
       }
-      // Automatically enter fullscreen if enabled
-      if (autoFullscreenEnabled && !isFullscreen) {
-        enterFullscreen();
+      if (result.autoReturnEnabled !== undefined) {
+        autoReturnEnabled = result.autoReturnEnabled;
       }
     }
   );
@@ -37,26 +42,23 @@ function initialize() {
   // Listen for mouse movements
   document.addEventListener("mousemove", handleMouseMove);
 
+  // ユーザージェスチャーを検出
+  document.addEventListener("click", recordUserGesture);
+  document.addEventListener("keydown", recordUserGesture);
+
   // Listen for fullscreen state changes
   document.addEventListener("fullscreenchange", handleFullscreenChange);
   document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
   document.addEventListener("mozfullscreenchange", handleFullscreenChange);
   document.addEventListener("MSFullscreenChange", handleFullscreenChange);
-
-  // Periodically check fullscreen state every second
-  setInterval(checkAutoFullscreen, 1000);
 }
 
-// Check and enforce fullscreen periodically
-function checkAutoFullscreen() {
-  // Only attempt fullscreen if allowed, not already fullscreen, and user is not near top
-  // Also throttle reattempts if an error was recently encountered.
-  if (
-    autoFullscreenEnabled &&
-    !isFullscreen &&
-    !isMouseNearTop &&
-    !fullscreenRetryTimeout
-  ) {
+// ユーザージェスチャーを記録
+function recordUserGesture() {
+  lastUserGesture = Date.now();
+
+  // ユーザージェスチャー後すぐにフルスクリーンを試みる（クリック時のみ）
+  if (autoFullscreenEnabled && !isFullscreen && !isMouseNearTop) {
     enterFullscreen();
   }
 }
@@ -69,18 +71,18 @@ function handleFullscreenChange() {
     !!document.webkitFullscreenElement ||
     !!document.mozFullScreenElement ||
     !!document.msFullscreenElement;
-  console.log("Fullscreen changed:", isFullscreen);
 
-  // When fullscreen is exited and auto mode is enabled, re-enter after delay
-  if (wasFullscreen && !isFullscreen && autoFullscreenEnabled) {
+  // 自動復帰は無効化 - ユーザーのクリックに依存するようにする
+  if (
+    wasFullscreen &&
+    !isFullscreen &&
+    autoFullscreenEnabled &&
+    autoReturnEnabled
+  ) {
     if (returnTimeoutId) {
       clearTimeout(returnTimeoutId);
     }
-    returnTimeoutId = setTimeout(() => {
-      if (!isMouseNearTop && autoFullscreenEnabled) {
-        enterFullscreen();
-      }
-    }, returnDelay);
+    // 自動復帰は行わない - ユーザーが画面をクリックするのを待つ
   }
 }
 
@@ -95,33 +97,30 @@ function handleMouseMove(e) {
   } else {
     if (isMouseNearTop) {
       isMouseNearTop = false;
+      lastUserGesture = Date.now();
     }
   }
 }
 
-// Enter fullscreen mode with throttling if an error occurs
+// Enter fullscreen mode
 function enterFullscreen() {
   if (!isFullscreen && autoFullscreenEnabled) {
-    console.log("Entering fullscreen");
     const docElm = document.documentElement;
-    let promise = null;
-    if (docElm.requestFullscreen) {
-      promise = docElm.requestFullscreen();
-    } else if (docElm.mozRequestFullScreen) {
-      promise = docElm.mozRequestFullScreen();
-    } else if (docElm.webkitRequestFullscreen) {
-      promise = docElm.webkitRequestFullscreen();
-    } else if (docElm.msRequestFullscreen) {
-      promise = docElm.msRequestFullscreen();
-    }
-    if (promise) {
-      promise.catch((e) => {
-        console.error("Fullscreen error:", e);
-        // Throttle further fullscreen attempts for 10 seconds
-        fullscreenRetryTimeout = setTimeout(() => {
-          fullscreenRetryTimeout = null;
-        }, 10000);
-      });
+
+    try {
+      if (docElm.requestFullscreen) {
+        docElm.requestFullscreen().catch(() => {
+          // エラーが発生しても何もしない（エラーログを表示しない）
+        });
+      } else if (docElm.mozRequestFullScreen) {
+        docElm.mozRequestFullScreen();
+      } else if (docElm.webkitRequestFullscreen) {
+        docElm.webkitRequestFullscreen();
+      } else if (docElm.msRequestFullscreen) {
+        docElm.msRequestFullscreen();
+      }
+    } catch (e) {
+      // エラーを抑制
     }
   }
 }
@@ -129,17 +128,20 @@ function enterFullscreen() {
 // Exit fullscreen mode
 function exitFullscreen() {
   if (isFullscreen) {
-    console.log("Exiting fullscreen");
-    if (document.exitFullscreen) {
-      document
-        .exitFullscreen()
-        .catch((e) => console.error("Exit fullscreen error:", e));
-    } else if (document.mozCancelFullScreen) {
-      document.mozCancelFullScreen();
-    } else if (document.webkitExitFullscreen) {
-      document.webkitExitFullscreen();
-    } else if (document.msExitFullscreen) {
-      document.msExitFullscreen();
+    try {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {
+          // エラーが発生しても何もしない
+        });
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
+    } catch (e) {
+      // エラーを抑制
     }
   }
 }
@@ -149,27 +151,37 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "checkAlive") {
     sendResponse({ status: "alive" });
   } else if (request.action === "toggle") {
+    lastUserGesture = Date.now();
+
     if (isFullscreen) {
       exitFullscreen();
     } else {
       enterFullscreen();
     }
+
     setTimeout(() => {
       sendResponse({ status: "toggled", isFullscreen: isFullscreen });
     }, 100);
+  } else if (request.action === "enterFullscreen") {
+    lastUserGesture = Date.now();
+    enterFullscreen();
+    sendResponse({ status: "entering fullscreen" });
   } else if (request.action === "updateSettings") {
-    console.log("Updating settings:", request);
     autoFullscreenEnabled = request.autoFullscreenEnabled;
     topSensitivityArea = request.topSensitivityArea;
     returnDelay = request.returnDelay;
+
+    if (request.autoReturnEnabled !== undefined) {
+      autoReturnEnabled = request.autoReturnEnabled;
+    }
+
     if (!autoFullscreenEnabled) {
       if (returnTimeoutId) {
         clearTimeout(returnTimeoutId);
         returnTimeoutId = null;
       }
-    } else if (!isFullscreen) {
-      enterFullscreen();
     }
+
     sendResponse({ status: "settings updated" });
   }
   return true; // Support async responses

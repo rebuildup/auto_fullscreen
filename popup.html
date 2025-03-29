@@ -26,6 +26,7 @@
         cursor: pointer;
         font-family: "Meiryo", "Hiragino Kaku Gothic Pro", "MS PGothic",
           sans-serif;
+        margin-right: 10px;
       }
       button:hover {
         background-color: #3367d6;
@@ -74,10 +75,40 @@
         color: #666;
         margin-top: 5px;
       }
+      .button-container {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+      .highlight-button {
+        background-color: #0f9d58;
+      }
+      .highlight-button:hover {
+        background-color: #0b8043;
+      }
+      .info {
+        background-color: #e8f0fe;
+        border-left: 4px solid #4285f4;
+        padding: 8px;
+        margin-bottom: 15px;
+        font-size: 12px;
+      }
     </style>
   </head>
   <body>
     <h2>自動全画面設定</h2>
+
+    <div class="info">
+      マウスを画面上部に移動すると全画面が解除されます。<br />
+      画面をクリックすると再度全画面に戻ります。
+    </div>
+
+    <div class="button-container">
+      <button id="enterFullscreen" class="highlight-button">
+        全画面表示にする
+      </button>
+      <button id="toggleFullscreen">全画面表示を切り替え</button>
+    </div>
 
     <div class="setting-item">
       <label class="switch">
@@ -86,7 +117,7 @@
       </label>
       <span style="margin-left: 10px">自動全画面機能</span>
       <p class="description">
-        画面上部にマウスを移動すると全画面解除され、一定時間後に再度全画面に戻ります
+        この機能をオンにすると、画面上部にマウスを移動した時に全画面が解除されます
       </p>
     </div>
 
@@ -97,24 +128,6 @@
       <p class="description">
         画面上部の何ピクセルまでにマウスを置くと全画面表示が解除されるか
       </p>
-    </div>
-
-    <div class="setting-item">
-      <label for="returnDelay">全画面復帰時間 (ミリ秒)</label>
-      <input
-        type="range"
-        id="returnDelay"
-        min="500"
-        max="5000"
-        step="100"
-        value="1000"
-      />
-      <span id="returnDelayValue">1000</span>ms
-      <p class="description">全画面解除後、再度全画面表示に戻るまでの時間</p>
-    </div>
-
-    <div class="setting-item">
-      <button id="toggleFullscreen">今すぐ全画面表示を切り替え</button>
     </div>
 
     <script src="popup.js"></script>

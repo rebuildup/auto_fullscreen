@@ -3,13 +3,17 @@ document.addEventListener("DOMContentLoaded", function () {
   const autoFullscreenCheckbox = document.getElementById("autoFullscreen");
   const topSensitivitySlider = document.getElementById("topSensitivity");
   const topSensitivityValue = document.getElementById("topSensitivityValue");
-  const returnDelaySlider = document.getElementById("returnDelay");
-  const returnDelayValue = document.getElementById("returnDelayValue");
   const toggleButton = document.getElementById("toggleFullscreen");
+  const enterFullscreenButton = document.getElementById("enterFullscreen");
 
   // 保存された設定を読み込む
   chrome.storage.sync.get(
-    ["autoFullscreenEnabled", "topSensitivityArea", "returnDelay"],
+    [
+      "autoFullscreenEnabled",
+      "topSensitivityArea",
+      "returnDelay",
+      "autoReturnEnabled",
+    ],
     function (result) {
       if (result.autoFullscreenEnabled !== undefined) {
         autoFullscreenCheckbox.checked = result.autoFullscreenEnabled;
@@ -27,13 +31,8 @@ document.addEventListener("DOMContentLoaded", function () {
         chrome.storage.sync.set({ topSensitivityArea: 20 });
       }
 
-      if (result.returnDelay !== undefined) {
-        returnDelaySlider.value = result.returnDelay;
-        returnDelayValue.textContent = result.returnDelay;
-      } else {
-        // デフォルト値を設定
-        chrome.storage.sync.set({ returnDelay: 1000 });
-      }
+      // 自動復帰は常に有効（UIから操作できないようにする）
+      chrome.storage.sync.set({ autoReturnEnabled: true });
     }
   );
 
@@ -59,17 +58,21 @@ document.addEventListener("DOMContentLoaded", function () {
     updateSettingsInActiveTab();
   });
 
-  // 復帰時間設定の変更
-  returnDelaySlider.addEventListener("input", function () {
-    returnDelayValue.textContent = returnDelaySlider.value;
-  });
-
-  returnDelaySlider.addEventListener("change", function () {
-    const delay = parseInt(returnDelaySlider.value);
-    chrome.storage.sync.set({ returnDelay: delay });
-
-    // アクティブなタブに設定変更を通知
-    updateSettingsInActiveTab();
+  // 全画面表示を開始するボタン
+  enterFullscreenButton.addEventListener("click", function () {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      if (tabs.length > 0 && tabs[0].id) {
+        chrome.tabs.sendMessage(
+          tabs[0].id,
+          { action: "enterFullscreen" },
+          function (response) {
+            if (chrome.runtime.lastError) {
+              // エラーを抑制
+            }
+          }
+        );
+      }
+    });
   });
 
   // 全画面表示の切り替えボタン
@@ -81,7 +84,7 @@ document.addEventListener("DOMContentLoaded", function () {
           { action: "toggle" },
           function (response) {
             if (chrome.runtime.lastError) {
-              console.log("Error: ", chrome.runtime.lastError.message);
+              // エラーを抑制
             }
           }
         );
@@ -98,12 +101,13 @@ document.addEventListener("DOMContentLoaded", function () {
           {
             action: "updateSettings",
             autoFullscreenEnabled: autoFullscreenCheckbox.checked,
+            autoReturnEnabled: true, // 常に有効
             topSensitivityArea: parseInt(topSensitivitySlider.value),
-            returnDelay: parseInt(returnDelaySlider.value),
+            returnDelay: 1000, // 固定値
           },
           function (response) {
             if (chrome.runtime.lastError) {
-              console.log("Error: ", chrome.runtime.lastError.message);
+              // エラーを抑制
             }
           }
         );

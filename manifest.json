@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "自動全画面切替",
-  "version": "1.0",
-  "description": "マウスを画面上部に移動すると全画面解除され、一定時間後に再度全画面に戻ります",
+  "version": "1.2",
+  "description": "マウスを画面上部に移動すると全画面解除され、画面をクリックすると全画面に戻ります",
   "permissions": ["tabs", "storage", "activeTab"],
   "background": {
     "service_worker": "background.js",
