@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "自動全画面切替",
+  "version": "1.0",
+  "description": "マウスを画面上部に移動すると全画面解除され、一定時間後に再度全画面に戻ります",
+  "permissions": ["tabs", "storage", "activeTab"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "48": "icon.png"
+  }
+}

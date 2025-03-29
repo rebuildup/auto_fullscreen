@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>自動全画面設定</title>
+    <style>
+      body {
+        width: 300px;
+        padding: 10px;
+        font-family: "Meiryo", "Hiragino Kaku Gothic Pro", "MS PGothic",
+          sans-serif;
+      }
+      .setting-item {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+      }
+      button {
+        padding: 5px 10px;
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: "Meiryo", "Hiragino Kaku Gothic Pro", "MS PGothic",
+          sans-serif;
+      }
+      button:hover {
+        background-color: #3367d6;
+      }
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 34px;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: 0.4s;
+        border-radius: 34px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+      input:checked + .slider {
+        background-color: #2196f3;
+      }
+      input:checked + .slider:before {
+        transform: translateX(26px);
+      }
+      .description {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>自動全画面設定</h2>
+
+    <div class="setting-item">
+      <label class="switch">
+        <input type="checkbox" id="autoFullscreen" />
+        <span class="slider"></span>
+      </label>
+      <span style="margin-left: 10px">自動全画面機能</span>
+      <p class="description">
+        画面上部にマウスを移動すると全画面解除され、一定時間後に再度全画面に戻ります
+      </p>
+    </div>
+
+    <div class="setting-item">
+      <label for="topSensitivity">上部感度エリア (ピクセル)</label>
+      <input type="range" id="topSensitivity" min="5" max="50" value="20" />
+      <span id="topSensitivityValue">20</span>px
+      <p class="description">
+        画面上部の何ピクセルまでにマウスを置くと全画面表示が解除されるか
+      </p>
+    </div>
+
+    <div class="setting-item">
+      <label for="returnDelay">全画面復帰時間 (ミリ秒)</label>
+      <input
+        type="range"
+        id="returnDelay"
+        min="500"
+        max="5000"
+        step="100"
+        value="1000"
+      />
+      <span id="returnDelayValue">1000</span>ms
+      <p class="description">全画面解除後、再度全画面表示に戻るまでの時間</p>
+    </div>
+
+    <div class="setting-item">
+      <button id="toggleFullscreen">今すぐ全画面表示を切り替え</button>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
